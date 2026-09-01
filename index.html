@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Joke Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .joke-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+            font-size: 18px;
+            line-height: 1.6;
+            word-wrap: break-word;
+            transition: all 0.3s ease;
+        }
+
+        .joke-box.loading {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 600;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .copy-btn {
+            background: #4CAF50;
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .copy-btn:hover {
+            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.6);
+        }
+
+        .joke-type {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .joke-type label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .joke-type input[type="radio"] {
+            cursor: pointer;
+        }
+
+        .error {
+            color: #d32f2f;
+            padding: 15px;
+            background: #ffebee;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .joke-counter {
+            color: #999;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>😂 Joke Generator</h1>
+        <p class="subtitle">Get a random joke to brighten your day!</p>
+
+        <div class="error" id="error"></div>
+
+        <div class="joke-type">
+            <label>
+                <input type="radio" name="jokeType" value="any" checked>
+                Any
+            </label>
+            <label>
+                <input type="radio" name="jokeType" value="single">
+                Single
+            </label>
+            <label>
+                <input type="radio" name="jokeType" value="twopart">
+                Two Part
+            </label>
+        </div>
+
+        <div class="joke-box" id="jokeBox">
+            Click the button to get a joke!
+        </div>
+
+        <div class="button-group">
+            <button onclick="fetchJoke()">Get Joke</button>
+            <button class="copy-btn" onclick="copyToClipboard()">Copy Joke</button>
+        </div>
+
+        <div class="joke-counter">
+            <p>Jokes fetched: <span id="counter">0</span></p>
+        </div>
+    </div>
+
+    <script>
+        const jokeBox = document.getElementById('jokeBox');
+        const errorBox = document.getElementById('error');
+        const counter = document.getElementById('counter');
+        let jokeCount = 0;
+        let currentJoke = '';
+
+        async function fetchJoke() {
+            const jokeType = document.querySelector('input[name="jokeType"]:checked').value;
+            
+            jokeBox.classList.add('loading');
+            jokeBox.textContent = 'Loading...';
+            errorBox.classList.remove('show');
+
+            try {
+                let url = 'https://v2.jokeapi.dev/joke/Any';
+                
+                if (jokeType === 'single') {
+                    url += '?type=single';
+                } else if (jokeType === 'twopart') {
+                    url += '?type=twopart';
+                }
+
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch joke');
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error('No jokes found matching your criteria');
+                }
+
+                let joke = '';
+                if (data.type === 'single') {
+                    joke = data.joke;
+                } else if (data.type === 'twopart') {
+                    joke = `${data.setup}\n\n${data.delivery}`;
+                }
+
+                currentJoke = joke;
+                jokeBox.classList.remove('loading');
+                jokeBox.textContent = joke;
+                jokeCount++;
+                counter.textContent = jokeCount;
+
+            } catch (error) {
+                jokeBox.classList.remove('loading');
+                errorBox.textContent = `Error: ${error.message}`;
+                errorBox.classList.add('show');
+                jokeBox.textContent = 'Failed to load joke. Try again!';
+            }
+        }
+
+        function copyToClipboard() {
+            if (currentJoke) {
+                navigator.clipboard.writeText(currentJoke).then(() => {
+                    alert('Joke copied to clipboard!');
+                }).catch(() => {
+                    alert('Failed to copy. Please try again.');
+                });
+            } else {
+                alert('No joke to copy. Get a joke first!');
+            }
+        }
+
+        // Load a joke on page load
+        window.addEventListener('load', fetchJoke);
+    </script>
+</body>
+</html>
